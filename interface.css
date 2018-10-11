@@ -1,0 +1,14 @@
+﻿#game {
+    padding-top:10px;
+    font-family: Courier New, Courier, monospace;
+    font-size:1vw;
+    width:100%;
+    height:calc(100vh - 30px);
+    display:flex;
+    user-select:none;
+}
+
+.container {
+
+}
+

@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Runic Force</title>
+</head>
+<body>
+    <div id="game">
+        <container width="10%" v-bind:sty="{'flex-direction':'column', 'border-right':'solid'}">
+        <tab-select v-for="tab in tabs" v-bind:name="tab.name" v-bind:active="tab.active" v-bind:sty="tab.style" v-bind:key="tab.id+1" v-bind:order="tab.id" @activate="switchTab(tab.id)"></tab-select>
+        </container>
+        <component :is="curTab"></component>
+
+
+
+
+
+
+    </div>
+    <script type="text/javascript" src="vue.js"></script>
+    <script type="text/javascript" src="main.js" ></script>
+    <link rel="stylesheet"  href="interface.css" type="text/css"/>
+</body>
+</html>
