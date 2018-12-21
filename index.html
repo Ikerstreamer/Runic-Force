@@ -8,7 +8,7 @@
 <body>
     <div id="game" ref="game">
         <container width="10%" height="100%" v-bind:sty="{'flex-direction':'column', 'border-right':'solid'}">
-        <tab-select v-for="tab in player.tabs" v-bind:name="tab.name" v-bind:active="tab.active" v-bind:sty="tab.style" v-bind:key="tab.id+1" v-bind:order="tab.id" @activate="switchTab(tab.id)" v-show="tab.unlock"></tab-select>
+        <tab-select v-for="tab in player.tabs" v-bind:tab="tab" v-bind:time="player.lastUpdate" v-bind:key="tab.id+1" v-bind:order="tab.id" @activate="switchTab(tab.id)" v-show="tab.unlock"></tab-select>
         </container>
         <keep-alive>
         <component v-bind:is="curTab + '-tab'" :player="player" @newmine="newMine" @research="" v-bind:knowprod="knowledgeProdMulti"></component>

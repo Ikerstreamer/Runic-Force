@@ -60,31 +60,30 @@ Vue.component('progress-bar', {
 
 Vue.component('tab-select', {
   props: {
-    name: String,
-    active: Boolean,
-    sty: Object,
-    order: Number
+    tab: Object,
+    order: Number,
+    time: Number,
   },
   computed: {
-
     styles: function() {
-      return Object.assign({
+      return {
         width: '100%',
         'font-size': '2vw',
         'padding-bottom': '5px',
         'padding-top': '5px',
         border: 'solid',
-        'border-width': '0.5px',
-        'border-color': 'black',
+        color: (this.tab.alert && Math.floor(this.time / 500) % 2 === 1) ? 'black' : this.tab.color,
+        'border-width': this.tab.active ? '1px' : '0.5px',
+        'border-color': this.tab.active ? this.tab.color : 'black',
         'text-align': 'center',
         'line-height': '100%',
         cursor: 'pointer',
-        'background-color': this.active ? '#C0C0C0' : '#DCDCDC',
+        'background-color': this.tab.active ? '#00B223' : '#FCFCFC',
         order: this.order
-      }, this.sty)
+      }
     },
   },
-  template: `<div v-bind:style="styles" @click="$emit('activate')">{{name}}</div>`
+  template: `<div v-bind:style="styles" @click="$emit('activate')">{{tab.name}}</div>`
 });
 
 Vue.component('Mines-tab', {
@@ -140,7 +139,7 @@ Vue.component('stone-ui', {
   <container width="auto" size="1.5em">Knowledge: {{dispKnowledge}}</container>
   <container width="auto" size="1em">Stone output multiplier: {{knowprod}}x</container>
   <br>
-  <progress-bar width="50%" height="1.5vw" color="lightblue" maxVal="100" v-bind:curVal="stone.progress" style="cursor:pointer" @click="start">{{actionDisp}}</progress-bar>
+  <progress-bar width="75%" height="1.5vw" color="lightblue" maxVal="100" v-bind:curVal="stone.progress" style="cursor:pointer" @click="start">{{actionDisp}}</progress-bar>
   <br>
   <container v-if="showReq" width="auto" size="1em"> <ul style="list-style-type: none; margin: 0; padding: 0;" ><li v-for="Req in researchReqs[dispKnowledge]">{{Req}}</li></ul></container>
   <container width="auto" size="1em" v-else>{{falvourText[0]}}<br>{{falvourText[1]}}<br>{{falvourText[2]}}</container>
@@ -186,15 +185,15 @@ Vue.component('stone-ui', {
     },
     falvourText: function() {
       if (!this.stone.research && this.action !== '') {
-        return ['Research Complete!', 'Method: ' + this.action, 'Results: ' + this.endText[this.action][Math.floor(Math.random() * this.endText[this.action].length)]];
+        return ['Research Complete!', 'Procedure: ' + this.action, 'Synopsis: ' + this.endText[this.action][Math.floor(Math.random() * this.endText[this.action].length)]];
       } else return ['', '', ''];
     },
     researchReqs: function() {
       return {
-        '???': ['Have ' + (this.stone.knowledge + 1) + ' ' + this.name + ' stones, actively available for research.', ' None will be consumed.'],
-        unknown: ['Have ' + this.stone.knowledge * 3 + ' ' + this.name + ' stones, actively available for research.', (this.stone.knowledge * 3 + 10) + ' will be consumed.'],
-        none: ['Have ' + Math.pow(this.stone.knowledge, 2) / KNOWLEDGE.none.time + ' ' + this.name + ' stones, available for research.', Math.pow(this.stone.knowledge, 2) + ' will be consumed.'],
-        fragments: ['Have ' + this.stone.knowledge * 100 + ' ' + this.name + 'stones'],
+        '???': ['Have ' + (this.stone.knowledge + 1) + ' ' + this.name + ' stones available to perform research on.', ' None will be consumed during the process.'],
+        unknown: ['Have ' + this.stone.knowledge * 3 + ' ' + this.name + ' stones available to perform research on.', (this.stone.knowledge * 3 + 10) + ' will be consumed during the process.'],
+        none: ['Have ' + Math.ceil(Math.pow(this.stone.knowledge, 2) / KNOWLEDGE.none.time * 3) + ' ' + this.name + ' stones available to perform research on.', Math.pow(this.stone.knowledge, 2) + ' will be consumed during the process.'],
+        fragments: ['Have ' + this.stone.knowledge * 100 / KNOWLEDGE.fragments.time + ' ' + this.name + ' stones available to perform research on.', this.stone.knowledge * 100 + ' will be consumed during the process.'],
       };
     }
   },
@@ -232,11 +231,66 @@ Vue.component('Stones-tab', {
   template: `
 <container ref="tab" width="80%" height="100%" v-bind:sty="{'margin-left':'2.5%', 'margin-right':'2.5%'}">
   <container width="50%" height="80%" v-bind:sty="{'flex-wrap':'wrap','overflow-y':'scroll', 'justify-content': 'start', 'align-content':'start', 'flex-direction':'column'}">
-    <stone-ui v-for="(stone, key) in player.stones" :key="key" v-bind:stone.sync="stone" v-bind:knowprod="knowprod[key]" v-bind:name="key" @start="$emit('research',key,stone.research)">
+    <stone-ui v-for="(stone, key) in player.stones" v-show="stone.unlock" :key="key" v-bind:stone.sync="stone" v-bind:knowprod="knowprod[key]" v-bind:name="key" @start="$emit('research',key,stone.research)">
     </stone-ui>
   </container>
 </container>
   `,
+});
+
+
+Vue.component('Runes-tab', {
+  props: ['player'],
+  template: `
+    <container ref="tab" width="80%" height="100%" v-bind:sty="{'margin-left':'2.5%', 'margin-right':'2.5%'}">
+      <container width="100%" height="5%" v-bind:sty="{'flex-direction':'row', 'border-right':'solid'}">
+        <tab-select v-for="tab in player.stones" v-bind:tab="tab" v-bind:time="player.lastUpdate" v-bind:key="tab.id+1" v-bind:order="tab.id" @activate="switchTab(tab.id)" v-show="tab.unlock"></tab-select>
+      </container>
+      <container width="70%" height="100%" v-bind:sty="{'margin-left':'2.5%', 'margin-right':'2.5%'}">
+      </container>
+  <container v-bind:width="modWidth" v-bind:height="modHeight" v-bind:sty="{'flex-wrap':'wrap','overflow-y':'scroll', 'justify-content': 'start', 'align-content':'start'}">
+    <container v-for="mine in player.mines.inst" v-bind:key="mine.id + 1" width="164px" height="164px" v-bind:sty="{'flex-direction':'column','align-items':'center'}">
+      <progress-bar width="128px" height="20px" color="green" v-bind:maxVal="mine.total" v-bind:curVal="mine.count">
+      </progress-bar>
+      <img src="imgs/mine.png" width="128px" height="128px" style="cursor:pointer;" draggable="false" />
+    </container>
+    <div v-bind:style="{height:'48px', width:'96px', 'border-radius': '20px', 'cursor':'pointer', border:'solid', 'text-align': 'center', 'margin-top':'32px', 'font-size':'12px', 'padding-top':'8px', 'padding-left':'4px', 'padding-right':'4px', 'vertical-align':'middle'}" @click="buyMine">
+      <span style="font-size:1.5em">New Mine</span> ({{Math.pow(10, player.mines.amnt-1)}} Black)
+    </div>
+  </container>
+</container>
+</container>
+    `,
+  methods: {
+    calcHeight: function() {
+      this.modHeight = this.itemWidth * Math.floor((this.$refs.tab.$el.clientHeight * this.percentWidth) / this.itemWidth) + "px";
+    },
+    calcWidth: function() {
+      this.modWidth = this.itemHeight * Math.floor((this.$refs.tab.$el.clientWidth * this.percentHeight) / this.itemHeight * 0.8) + this.itemHeight * 0.1 + "px";
+    },
+    buyMine: function() {
+      if (this.player.stones.black.amnt >= Math.pow(10, this.player.mines.amnt - 1)) {
+        this.$emit('newmine', function() {
+          player.stones.black.amnt -= Math.pow(10, this.player.mines.amnt - 1);
+        });
+      }
+    },
+  },
+  data: function() {
+    return {
+      percentWidth: 0.2,
+      percentHeight: 0.8,
+      itemWidth: 164,
+      itemHeight: 164,
+      modHeight: '80%',
+      modWidth: '20%',
+    }
+  },
+  beforeUpdate: function() {
+    this.calcHeight();
+    this.calcWidth();
+  }
+
 });
 
 

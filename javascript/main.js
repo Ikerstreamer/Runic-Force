@@ -4,7 +4,7 @@ const KNOWLEDGELEVELS = ['???', 'unknown', 'none', 'fragments', 'slight', 'novic
 const KNOWLEDGE = {
   '???': {
     actions: ['Stare at stones'],
-    time: 10,
+    time: 6,
     steps: 1,
     check: function(name) {
       return player.stones[name].amnt > player.stones[name].knowledge;
@@ -17,7 +17,7 @@ const KNOWLEDGE = {
   },
   unknown: {
     actions: ['Pick up stone', 'Rub the stone', 'Lick the stone', 'Kiss the stone'],
-    time: 20,
+    time: 10,
     steps: 1,
     check: function(name) {
       return player.stones[name].amnt >= player.stones[name].knowledge * 3;
@@ -38,7 +38,7 @@ const KNOWLEDGE = {
     time: 15,
     steps: 1,
     check: function(name) {
-      return player.stones[name].amnt >= Math.pow(player.stones[name].knowledge, 2) / this.time;
+      return player.stones[name].amnt >= Math.ceil(Math.pow(player.stones[name].knowledge, 2) / this.time * 3);
     },
     tick: function(name, delta) {
       if (this.check(name)) {
@@ -59,8 +59,14 @@ const KNOWLEDGE = {
       return player.stones[name].amnt >= player.stones[name].knowledge * 100 / this.time;
     },
     tick: function(name, delta) {
-      if (player.stones[name].amnt > player.stones[name].knowledge) return true;
-      else return false;
+      if (this.check(name)) {
+        let cost = player.stones[name].knowledge * 100;
+        let progressTime = (player.stones[name].progress / 100 * this.time) % (this.time / cost);
+        if (this.time / cost <= delta / 1000 + progressTime) {
+          player.stones[name].amnt -= 1;
+        }
+        player.stones[name].progress += 0.1 / this.time * delta;
+      }
     }
   },
 }
@@ -80,6 +86,7 @@ let game = new Vue({
           research: false,
           progress: 0,
           unlock: true,
+          id: 0,
         },
         red: {
           name: 'red',
@@ -88,6 +95,7 @@ let game = new Vue({
           research: false,
           progress: 0,
           unlock: false,
+          id: 1,
         },
       },
       mines: {
@@ -104,27 +112,24 @@ let game = new Vue({
           name: 'Mines',
           unlock: true,
           active: true,
-          style: {
-            color: '#d5d500'
-          },
-          id: 0
+          alert: false,
+          color: '#ffae42',
+          id: 0,
         },
         {
           name: 'Stones',
           unlock: false,
           active: false,
-          style: {
-            color: 'blue'
-          },
+          alert: false,
+          color: 'blue',
           id: 1
         },
         {
           name: 'Runes',
           unlock: false,
           active: false,
-          style: {
-            color: 'red'
-          },
+          alert: false,
+          color: 'red',
           id: 2
         }
       ],
@@ -156,8 +161,10 @@ let game = new Vue({
   methods: {
     switchTab: function(id) {
       for (let i = 0; i < this.player.tabs.length; i++) {
-        if (this.player.tabs[i].id === id) this.player.tabs[i].active = true;
-        else this.player.tabs[i].active = false;
+        if (this.player.tabs[i].id === id) {
+          this.player.tabs[i].active = true;
+          this.player.tabs[i].alert = false;
+        } else this.player.tabs[i].active = false;
       }
     },
     formatNum: function(x) {
@@ -178,7 +185,10 @@ let game = new Vue({
         cycle: 0,
       })
       this.player.mines.amnt++;
-      if (this.player.mines.amnt >= 2) this.player.tabs[1].unlock = true;
+      if (this.player.mines.amnt >= 2) {
+        this.player.tabs[1].unlock = true;
+        this.player.tabs[1].alert = true;
+      }
     },
     startResearch: function(name, res) {
       this.player.stones[name].research = res;
@@ -196,40 +206,6 @@ let game = new Vue({
     },
   }
 });
-
-// const KNOWLEDGEACTIONS = {
-//   '???': ['Stare at stones'],
-//   unknown: ['Pick up stone', 'Rub the stone', 'Lick the stone', 'Kiss the stone'],
-//   none: ['Drop the stone from a tree', 'Watch the stone skid over the water', 'Drop the stone on your toes'],
-//   fragments: ['Rock meet rock', 'ROCK SMASH', 'Hit rock with rock']
-// }
-// const KNOWLEDGETIME = {
-//   '???': 10,
-//   unknown: 20,
-//   none: 15,
-//   fragments: 20,
-// }
-// const KNOWLEDGESTEPS = {
-//   '???': 1,
-//   unknown: 1,
-//   none: 1,
-//   fragments: 1,
-// }
-// const KNOWLEDGETICK = {
-//   '???': funtion(name, delta) {
-//     if (player.stones[name].amnt > player.stones[name].knowledge) return true;
-//     else return false;
-//   },
-//   unknown: funtion(name, delta) {
-//
-//   },
-//   none: function(name, delta) {
-//
-//   },
-//   fragments: function(name, delta) {
-//
-//   },
-// }
 
 function gameLoop() {
   //set player to the player object
@@ -253,6 +229,10 @@ function stoneResearch(delta) {
         stone.research = false;
         stone.progress = 0;
         stone.knowledge++;
+        if (game.researchLevels.black === 3) {
+          this.player.tabs[2].unlock = true;
+          this.player.tabs[2].alert = true;
+        }
       }
     }
   }
@@ -267,3 +247,8 @@ function mineProduction(delta) {
 }
 
 requestAnimationFrame(gameLoop);
+
+//Test Stuff
+function dev() {
+  player.tabs[2].unlock = true;
+}
